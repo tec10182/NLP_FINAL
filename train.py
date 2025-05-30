@@ -194,7 +194,7 @@ def trainer(args, accelerator):
     # Train the model
     trainer.train()
 
-    torch.save(model.netF.state_dict(), args.netB_dir + '.pth')
+    torch.save(model.netF.state_dict(), args.netF_dir + '.pth')
     torch.save(model.netB.state_dict(), args.netB_dir + '.pth')
     torch.save(model.netC.state_dict(), args.netC_dir + '.pth')
     
@@ -302,6 +302,7 @@ if __name__ == "__main__":
     ROOT = f"./output/{args.filename}/train"
     args.logging_dir = ROOT + "/log"
     args.result_dir = ROOT + "result"
+    args.netF_dir = ROOT + "netF"
     args.netB_dir = ROOT + "netB"
     args.netC_dir = ROOT + "netC"
 

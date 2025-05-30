@@ -38,7 +38,7 @@ from accelerate import Accelerator
 
 from helper import get_class, set_seed, get_metric, MultiModelWrapper, BiGRU, Classifier, Entropy, obtain_label, TestCustomTrainingArguments
 
-DATASET_PATH = ''
+DATASET_PATH = 'multi-value/VALUE/CoLA'
 
 class CustomTrainer(Trainer):
     def __init__(self, out_file, *args, **kwargs):
@@ -96,10 +96,9 @@ def tester(args, accelerator):
         weight_decay=args.weight_decay,
         # logging_dir=args.logging_dir,
         save_total_limit=args.save_total_limit,
-        remove_unused_columns=False,
+        remove_unused_columns=True,
 
         class_num = args.class_num,
-
         ent = args.ent,
         gent = args.gent,
         ent_par = args.ent_par,
@@ -125,7 +124,8 @@ def tester(args, accelerator):
 
     # # Load the tokenizer and model
     tokenizer = RobertaTokenizer.from_pretrained(args.model_name)    
-    netF = RobertaModel.from_pretrained(args.model_name).to(device)
+    netF = RobertaModel.from_pretrained(args.model_name)
+    netF.load_state_dict(torch.load(args.in_netF_dir+'.pth'))
     mid_hidden_size = netF.config.hidden_size // 2 # 256
 
     netB = BiGRU(input_size=netF.config.hidden_size, hidden_size=mid_hidden_size)
@@ -155,7 +155,8 @@ def tester(args, accelerator):
 
     elif args.dset in ['cola', 'mnli', 'qnli', 'rte', 'qqp', 'sst2', 'sts-b']:
         if args.validation_dataset:
-            dataset = load_from_disk(f'{DATASET_PATH}/multivalue/{args.validation_dataset}')    
+            dataset = load_dataset('csv', data_files=f'{DATASET_PATH}/{args.validation_dataset}', delimiter='\t')
+            # dataset = load_from_disk(f'{DATASET_PATH}/multivalue/{args.validation_dataset}')    
         else:
             dataset = load_dataset("glue", args.dset, split='validation')
             args.validation_dataset = args.dset + '_SAE_validation'
@@ -177,6 +178,7 @@ def tester(args, accelerator):
     encoded_dataset = dataset.map(tokenize_function, batched=True)
     encoded_dataset.set_format("torch", columns=["input_ids", "attention_mask", "labels"])
 
+    print(encoded_dataset)
     if args.dset in ['cola', 'mnli', 'qnli', 'rte', 'qqp', 'sst2', 'sts-b']:
         metric = evaluate.load('glue', args.dset)
     else:
@@ -185,7 +187,9 @@ def tester(args, accelerator):
 
     optimizer = AdamW(model.parameters(), lr=args.lr)
 
+    encoded_dataset = encoded_dataset['train']
     num_training_steps = len(encoded_dataset) // training_args.per_device_train_batch_size * training_args.num_train_epochs
+
 
     def lr_lambda(current_step):
         p = current_step / num_training_steps
@@ -329,6 +333,7 @@ if __name__ == "__main__":
     args.result_dir = OUT_ROOT + "result"
     
     # OUT DIR
+    # args.out_netF_dir = OUT_ROOT + "netF"
     args.out_netB_dir = OUT_ROOT + "netB"
     args.out_netC_dir = OUT_ROOT + "netC"
     
@@ -339,7 +344,7 @@ if __name__ == "__main__":
     
     args.out_file = open(OUT_ROOT + f'log/log_{args.savename}.txt', 'w')
 
-    for path in [args.logging_dir, args.result_dir, args.out_netB_dir, args.out_netC_dir]:
+    for path in [args.logging_dir, args.result_dir, args.out_netB_dir, args.out_netC_dir, args.out_netF_dir]:
         if os.path.isfile(path):
             raise Exception(f"File already exists at {path}") 
 
