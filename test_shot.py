@@ -96,7 +96,7 @@ def tester(args, accelerator):
         weight_decay=args.weight_decay,
         # logging_dir=args.logging_dir,
         save_total_limit=args.save_total_limit,
-        remove_unused_columns=True,
+        remove_unused_columns=False,
 
         class_num = args.class_num,
         ent = args.ent,
@@ -178,7 +178,7 @@ def tester(args, accelerator):
     encoded_dataset = dataset.map(tokenize_function, batched=True)
     encoded_dataset.set_format("torch", columns=["input_ids", "attention_mask", "labels"])
 
-    print(encoded_dataset)
+    
     if args.dset in ['cola', 'mnli', 'qnli', 'rte', 'qqp', 'sst2', 'sts-b']:
         metric = evaluate.load('glue', args.dset)
     else:
@@ -322,6 +322,7 @@ if __name__ == "__main__":
 
     IN_ROOT = f"./output/{args.int_filename}/train"    
     # IN DIR
+    args.in_netF_dir = IN_ROOT + "netF"
     args.in_netB_dir = IN_ROOT + "netB"
     args.in_netC_dir = IN_ROOT + "netC"
     
@@ -344,7 +345,7 @@ if __name__ == "__main__":
     
     args.out_file = open(OUT_ROOT + f'log/log_{args.savename}.txt', 'w')
 
-    for path in [args.logging_dir, args.result_dir, args.out_netB_dir, args.out_netC_dir, args.out_netF_dir]:
+    for path in [args.logging_dir, args.result_dir, args.out_netB_dir, args.out_netC_dir]:
         if os.path.isfile(path):
             raise Exception(f"File already exists at {path}") 
 
