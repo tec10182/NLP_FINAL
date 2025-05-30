@@ -73,6 +73,7 @@ def trainer(args, accelerator):
         logging_dir=args.logging_dir,
         save_total_limit=args.save_total_limit,
         remove_unused_columns=False,
+        metric_for_best_model="eval_matthews_correlation",
     )
 
     if accelerator.is_main_process:
@@ -101,8 +102,8 @@ def trainer(args, accelerator):
     model = MultiModelWrapper(netF, netB, netC)
 
     # Freeze netF
-    for param in model.netF.parameters():
-        param.requires_grad = False
+    # for param in model.netF.parameters():
+    #     param.requires_grad = False
 
     if args.dset == 'besstie':
         # # BESSTIE Dataset
@@ -193,6 +194,7 @@ def trainer(args, accelerator):
     # Train the model
     trainer.train()
 
+    torch.save(model.netF.state_dict(), args.netB_dir + '.pth')
     torch.save(model.netB.state_dict(), args.netB_dir + '.pth')
     torch.save(model.netC.state_dict(), args.netC_dir + '.pth')
     
@@ -280,8 +282,10 @@ if __name__ == "__main__":
     # parser.add_argument('--val_size', type=int, default=-1)
 
     parser.add_argument('--max_epoch', type=int, default=50, help="Number of training epochs")
-    parser.add_argument('--batch_size', type=int, default=32, help="Batch size for training") #16 can go up to 128
-    parser.add_argument('--lr', type=float, default=0.001, help="Learning rate") # 1e-5, 1e-2
+    parser.add_argument('--batch_size', type=int, default=16, help="Batch size for training") #16 can go up to 128
+    # parser.add_argument('--batch_size', type=int, default=128, help="Batch size for training") #16 can go up to 128
+    # parser.add_argument('--lr', type=float, default=0.001, help="Learning rate") # 1e-5, 1e-2
+    parser.add_argument('--lr', type=float, default=2e-5, help="Learning rate") # 1e-5, 1e-2
     parser.add_argument('--weight_decay', type=float, default=0.01, help="Weight decay for the optimizer")
 
     args = parser.parse_args()
